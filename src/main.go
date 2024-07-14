@@ -55,7 +55,7 @@ func addNewTask(reader *bufio.Reader, db *sql.DB) {
 	}
 	task = strings.TrimSuffix((strings.TrimSpace(task)), "\n")
 
-	stmt, err := db.Prepare("INSERT INTO tasks(title) VALUES(?)")
+	stmt, err := db.Prepare("INSERT INTO tasks(title,completed) VALUES(?,0)")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -123,7 +123,7 @@ func main() {
 
 	handleFlag(db, *showHelpMenuFlag, *addNewTaskFlag, *updateTaskFlag, *deleteTaskFlag)
 
-	stmt, err := db.Prepare("CREATE TABLE IF NOT EXISTS tasks('id' INTEGER, 'title' TEXT, 'completed' BOOL, 'created_at' DATETIME, 'updated_at' DATETME, PRIMARY KEY('id' AUTOINCREMENT))")
+	stmt, err := db.Prepare("CREATE TABLE IF NOT EXISTS tasks('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'title' TEXT, 'completed' INTEGER CHECK(completed IN (0,1)), 'created_at' TEXT, 'updated_at' TEXT)")
 	if err != nil {
 		log.Fatal(err)
 	}
