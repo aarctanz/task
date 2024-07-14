@@ -115,7 +115,7 @@ func main() {
 	var deleteTaskFlag = flag.Bool("d", false, "Delete a task.")
 	flag.Parse()
 
-	db, err := sql.Open("sqlite3", "./task.db")
+	db, err := sql.Open("sqlite3", os.Getenv("HOME")+"/task.db")
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -134,16 +134,32 @@ func main() {
 		log.Fatal(err)
 	}
 
-	rows, err := db.Query("SELECT * FROM tasks;")
+	rows, err := db.Query("SELECT * FROM tasks")
 	if err != nil {
 		log.Fatal(err)
 	}
-	var t task
+	var allTasks []task
 	defer rows.Close()
 
 	for rows.Next() {
+		var t task
 		rows.Scan(&t.id, &t.title, &t.completed, &t.created_at, &t.updated_at)
-		fmt.Println(t.id, "|", t.title, "|", t.completed)
+
+		allTasks = append(allTasks, t)
+	}
+
+	if len(allTasks) == 0 {
+		fmt.Println("No tasks.")
+	} else {
+		for _, t := range allTasks {
+			fmt.Printf("%d.\t%s\t", t.id, t.title)
+			if t.completed == 1 {
+				fmt.Printf("%s\n", "Completed")
+			} else {
+				fmt.Printf("%s\n", "Not Completed")
+			}
+		}
+		fmt.Printf("Total tasks: %d\n", len(allTasks))
 	}
 
 }
