@@ -63,8 +63,16 @@ cd task
 ```
 
 ```bash
-sudo go run src/main.go
+make
 ```
+
+### Commands 
+
+- `task` - Show all tasks
+- `task -h` - Show list of all commands
+- `task -a` - Add new task
+- `task -u` - Update task to completed or not completed
+- `task -d` - Delete a task
 
 
 ## Contributing
