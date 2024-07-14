@@ -127,6 +127,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer stmt.Close()
 
 	_, err = stmt.Exec()
 	if err != nil {
@@ -142,7 +143,7 @@ func main() {
 
 	for rows.Next() {
 		rows.Scan(&t.id, &t.title, &t.completed, &t.created_at, &t.updated_at)
-		fmt.Println(t.id, " | ", t.title, " | ", t.completed)
+		fmt.Println(t.id, "|", t.title, "|", t.completed)
 	}
 
 }
