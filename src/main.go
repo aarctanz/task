@@ -2,10 +2,21 @@ package main
 
 import (
 	"bufio"
+	"database/sql"
 	"flag"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
+	"log"
 	"os"
 )
+
+type task struct {
+	id         int
+	title      string
+	completed  int
+	created_at string
+	updated_at string
+}
 
 func main() {
 
@@ -36,19 +47,19 @@ func main() {
 	}
 
 	if *updateTaskFlag {
-		fmt.Println("Enter task ID.")
-		taskId,err:=reader.ReadString('\n')
-		if err!= nil{
+		fmt.Printf("Enter task ID: ")
+		taskId, err := reader.ReadString('\n')
+		if err != nil {
 			fmt.Println("Error reading task ID.")
 			return
 		}
 
-		fmt.Println("Marked task as completed/not completed.")
+		fmt.Println("Marked task as completed/not completed.", taskId)
 		return
 	}
 
 	if *deleteTaskFlag {
-		fmt.Println("Enter task ID.")
+		fmt.Printf("Enter task ID: ")
 		taskId, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Error reading task ID")
@@ -58,6 +69,33 @@ func main() {
 		return
 	}
 
-	fmt.Println("All tasks")
+	db, err := sql.Open("sqlite3", "./task.db")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	stmt, err := db.Prepare("CREATE TABLE IF NOT EXISTS tasks('id' INTEGER, 'title' TEXT, 'completed' BOOL, 'created_at' DATETIME, 'updated_at' DATETME, PRIMARY KEY('id' AUTOINCREMENT))")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	_, err = stmt.Exec()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	rows, err := db.Query("SELECT * FROM tasks;")
+	if err != nil {
+		log.Fatal(err)
+	}
+	var t task
+	defer rows.Close()
+
+	for rows.Next() {
+		rows.Scan(&t.id, &t.title, &t.completed, &t.created_at, &t.updated_at)
+
+		fmt.Println(t.id, " | ", t.title, " | ", t.completed)
+	}
 
 }
