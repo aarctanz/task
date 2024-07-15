@@ -21,28 +21,20 @@ type task struct {
 	updated_at string
 }
 
-func handleFlag(db *sql.DB, showHelpMenuFlag, addNewTaskFlag, updateTaskFlag, deleteTaskFlag bool) {
+func handleFlag(db *sql.DB, showHelpMenuFlag, addNewTaskFlag, updateTaskFlag, deleteTaskFlag bool, allTasks []task) {
 	reader := bufio.NewReader(os.Stdin)
 
 	if showHelpMenuFlag {
 		fmt.Printf("\t-a\tAdd a new task\n\r\t-u\tUpdate a task(Completed or not).\n\r\t-e\tEdit a task\n\r\t-d\tDelete a task\n\r")
 		return
-	}
-
-	if addNewTaskFlag {
+	} else if addNewTaskFlag {
 		addNewTask(reader, db)
-		return
+	} else if updateTaskFlag {
+		updateTask(reader, db, allTasks)
+	} else if deleteTaskFlag {
+		deleteTask(reader, db, allTasks)
 	}
-
-	if updateTaskFlag {
-		updateTask(reader, db)
-		return
-	}
-
-	if deleteTaskFlag {
-		deleteTask(reader, db)
-		return
-	}
+	printAllTasks(getAllTasks(db))
 }
 
 func addNewTask(reader *bufio.Reader, db *sql.DB) {
@@ -64,7 +56,7 @@ func addNewTask(reader *bufio.Reader, db *sql.DB) {
 	stmt.Exec(task)
 }
 
-func updateTask(reader *bufio.Reader, db *sql.DB) {
+func updateTask(reader *bufio.Reader, db *sql.DB, allTasks []task) {
 	fmt.Printf("Enter task ID: ")
 	input, err := reader.ReadString('\n')
 	if err != nil {
@@ -83,10 +75,10 @@ func updateTask(reader *bufio.Reader, db *sql.DB) {
 	defer stmt.Close()
 
 	fmt.Println("taskid", taskId)
-	stmt.Exec(taskId)
+	stmt.Exec(allTasks[taskId].id)
 }
 
-func deleteTask(reader *bufio.Reader, db *sql.DB) {
+func deleteTask(reader *bufio.Reader, db *sql.DB, allTasks []task) {
 	fmt.Printf("Enter task ID: ")
 	input, err := reader.ReadString('\n')
 	if err != nil {
@@ -103,8 +95,43 @@ func deleteTask(reader *bufio.Reader, db *sql.DB) {
 		log.Fatal(err)
 	}
 	defer stmt.Close()
+	stmt.Exec(allTasks[taskId].id)
+}
 
-	stmt.Exec(taskId)
+func getAllTasks(db *sql.DB) []task {
+	var allTasks []task
+	rows, err := db.Query("SELECT * FROM tasks")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer rows.Close()
+
+	for rows.Next() {
+		var t task
+		rows.Scan(&t.id, &t.title, &t.completed, &t.created_at, &t.updated_at)
+
+		allTasks = append(allTasks, t)
+	}
+
+	return allTasks
+
+}
+
+func printAllTasks(allTasks []task) {
+	if len(allTasks) == 0 {
+		fmt.Println("No tasks.")
+	} else {
+		for i, t := range allTasks {
+			fmt.Printf("%d.\t%s |\t", i, t.title)
+			if t.completed == 1 {
+				fmt.Printf("%s\n", "Completed")
+			} else {
+				fmt.Printf("%s\n", "Not Completed")
+			}
+		}
+		fmt.Printf("\nTotal tasks: %d\n", len(allTasks))
+	}
 }
 
 func main() {
@@ -121,8 +148,6 @@ func main() {
 	}
 	defer db.Close()
 
-	handleFlag(db, *showHelpMenuFlag, *addNewTaskFlag, *updateTaskFlag, *deleteTaskFlag)
-
 	stmt, err := db.Prepare("CREATE TABLE IF NOT EXISTS tasks('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'title' TEXT, 'completed' INTEGER CHECK(completed IN (0,1)), 'created_at' TEXT, 'updated_at' TEXT)")
 	if err != nil {
 		log.Fatal(err)
@@ -134,32 +159,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	rows, err := db.Query("SELECT * FROM tasks")
-	if err != nil {
-		log.Fatal(err)
-	}
-	var allTasks []task
-	defer rows.Close()
+	allTasks := getAllTasks(db)
 
-	for rows.Next() {
-		var t task
-		rows.Scan(&t.id, &t.title, &t.completed, &t.created_at, &t.updated_at)
-
-		allTasks = append(allTasks, t)
-	}
-
-	if len(allTasks) == 0 {
-		fmt.Println("No tasks.")
-	} else {
-		for _, t := range allTasks {
-			fmt.Printf("%d.\t%s\t", t.id, t.title)
-			if t.completed == 1 {
-				fmt.Printf("%s\n", "Completed")
-			} else {
-				fmt.Printf("%s\n", "Not Completed")
-			}
-		}
-		fmt.Printf("Total tasks: %d\n", len(allTasks))
-	}
-
+	handleFlag(db, *showHelpMenuFlag, *addNewTaskFlag, *updateTaskFlag, *deleteTaskFlag, allTasks)
 }
